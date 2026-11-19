@@ -6,7 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import { type MatrixEvent, type Room, type RoomMember } from "matrix-js-sdk/src/matrix";
+import { type MatrixEvent, type Room, type RoomMember, User } from "matrix-js-sdk/src/matrix";
 
 import { type ButtonEvent } from "../components/views/elements/AccessibleButton";
 import { PillType } from "../components/views/elements/PillType";
@@ -142,16 +142,21 @@ export const usePermalink: (args: Args) => HookResult = ({
 
     if (type === PillType.AtRoomMention && permalinkRoom) {
         text = "@room";
-    } else if (type === PillType.UserMention && member) {
-        text = member.name || resourceId;
-        onClick = (e: ButtonEvent): void => {
-            e.preventDefault();
-            e.stopPropagation();
-            dis.dispatch({
-                action: Action.ViewUser,
-                member: member,
-            });
-        };
+    } else if (type === PillType.UserMention) {
+        if (member) text = member.name || resourceId;
+        // The member may still be loading. Handle the click anyway so the browser
+        // does not follow the pill's href and leave the room.
+        const userId = resourceId;
+        if (userId) {
+            onClick = (e: ButtonEvent): void => {
+                e.preventDefault();
+                e.stopPropagation();
+                dis.dispatch({
+                    action: Action.ViewUser,
+                    member: member ?? new User(userId),
+                });
+            };
+        }
     } else if (type === PillType.RoomMention) {
         if (targetRoom) {
             text = targetRoom.name || resourceId;
